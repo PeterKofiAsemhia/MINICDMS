@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Church Attendance Dashboard</title>
+    <style>
+        :root {
+            --bg: #f3f6fb;
+            --panel: #ffffff;
+            --primary: #0f172a;
+            --secondary: #2563eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--primary); }
+        .topbar { background: linear-gradient(135deg, #0f172a, #1d4ed8); color: white; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .brand { font-size: 1.2rem; font-weight: 700; }
+        .user-actions { display: flex; align-items: center; gap: 16px; }
+        .user-actions form { margin: 0; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px 40px; }
+        .stats-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 22px; }
+        .stat-card { background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--border); }
+        .stat-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+        .stat-value { font-size: 2rem; font-weight: 800; margin: 12px 0 0; }
+        .layout { display: grid; grid-template-columns: 1.1fr 1.6fr; gap: 22px; }
+        .panel { background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); padding: 22px; }
+        .panel h2 { margin: 0 0 14px; }
+        .device-box, .session-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 18px; }
+        .device-box strong { font-size: 0.95rem; }
+        .status-pill { display: inline-block; margin-top: 8px; background: rgba(22,163,74,0.12); color: var(--success); border-radius: 999px; padding: 6px 10px; font-size: 0.75rem; font-weight: 700; }
+        .status-pill.offline { background: rgba(220,38,38,0.12); color: var(--danger); }
+        form { display: grid; gap: 12px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .field { display: grid; gap: 6px; }
+        label { font-size: 0.82rem; color: var(--muted); font-weight: 600; }
+        input, select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.95rem; background: white; }
+        button { border: none; border-radius: 10px; padding: 12px 14px; font-weight: 700; cursor: pointer; }
+        .primary { background: var(--secondary); color: white; }
+        .success { background: var(--success); color: white; }
+        .warning { background: var(--warning); color: white; }
+        .danger { background: var(--danger); color: white; }
+        .member-table, .attendance-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .member-table th, .member-table td, .attendance-table th, .attendance-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+        .member-table th, .attendance-table th { background: #f8fafc; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        .badge { display: inline-block; padding: 5px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
+        .badge.admin { background: rgba(37,99,235,0.12); color: var(--secondary); }
+        .badge.user { background: rgba(22,163,74,0.12); color: var(--success); }
+        .badge.pending { background: rgba(245,158,11,0.12); color: var(--warning); }
+        .empty { color: var(--muted); padding: 10px 0; }
+        .summary-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 14px; border-radius: 12px; margin-top: 10px; }
+        @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">Church Attendance System</div>
+        <div class="user-actions">
+            <span>Welcome, <strong>{{ user.username }}</strong></span>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="container">
+        {% if messages %}
+            <div style="margin-bottom: 18px; display: grid; gap: 8px;">
+                {% for message in messages %}
+                    <div style="padding: 12px 14px; border-radius: 10px; font-weight: 600; background: {% if message.tags == 'error' %}#fee2e2; color: #991b1b; border: 1px solid #fecaca;{% elif message.tags == 'success' %}#dcfce7; color: #166534; border: 1px solid #bbf7d0;{% else %}#fef3c7; color: #92400e; border: 1px solid #fde68a;{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if enrollment_pending %}
+            <div id="enrollment-waiting" style="margin-bottom: 18px; padding: 14px 18px; border-radius: 12px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-weight: 700;">
+                Waiting for fingerprint scan on the device. Refreshing automatically in 15 seconds...
+            </div>
+        {% endif %}
+
+        {% if enrollment_complete %}
+            <div id="enrollment-success" style="margin-bottom: 18px; padding: 14px 18px; border-radius: 12px; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-weight: 700;">
+                Fingerprint enrollment is complete. Refreshing to update member status...
+            </div>
+        {% endif %}
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Registered Members</div>
+                <div class="stat-value">{{ member_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Present Today</div>
+                <div class="stat-value">{{ today_present }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Late</div>
+                <div class="stat-value">{{ late_count }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Fingerprints</div>
+                <div class="stat-value">{{ pending_fingerprints }}</div>
+            </div>
+        </section>
+
+        <section class="layout">
+            <div>
+                <div class="panel">
+                    <h2>Device Control</h2>
+                    <div class="device-box">
+                        <strong>Device Status:</strong>
+                        <div>
+                            <span class="status-pill {% if not device_connected %}offline{% endif %}">
+                                {{ device_status }}
+                            </span>
+                        </div>
+                        {% if device_name %}
+                            <div style="margin-top: 8px; color: var(--muted);">Name: {{ device_name }}</div>
+                        {% endif %}
+                        {% if serial_number %}
+                            <div style="margin-top: 4px; color: var(--muted);">Serial: {{ serial_number }}</div>
+                        {% endif %}
+                        {% if firmware_version %}
+                            <div style="margin-top: 4px; color: var(--muted);">Firmware: {{ firmware_version }}</div>
+                        {% endif %}
+                        {% if device_ip %}
+                            <div style="margin-top: 4px; color: var(--muted);">IP: {{ device_ip }}</div>
+                        {% endif %}
+                        {% if user_capacity or fingerprint_capacity %}
+                            <div style="margin-top: 8px; color: var(--muted);">
+                                Capacity: {{ user_capacity|default:'?' }} users / {{ fingerprint_capacity|default:'?' }} fingerprints
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="{% url 'connect_device' %}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="field">
+                                <label>Device IP</label>
+                                <input type="text" name="ip" value="192.168.1.201" required>
+                            </div>
+                            <div class="field">
+                                <label>Comm Key</label>
+                                <input type="text" name="comm_key" value="123" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="primary">Connect Device</button>
+                    </form>
+                </div>
+
+                <div class="panel" style="margin-top: 22px;">
+                    <h2>Register New Member</h2>
+                    <form method="post" action="{% url 'register_member' %}" id="member-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="member_id" id="member_id" value="">
+                        <div class="row">
+                            <div class="field">
+                                <label>Employee ID</label>
+                                <input type="text" name="employee_id" id="employee_id" placeholder="E.g. 1001" required>
+                            </div>
+                            <div class="field">
+                                <label>Full Name</label>
+                                <input type="text" name="name" id="member_name" placeholder="John Doe" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="field">
+                                <label>Device UID</label>
+                                <input type="text" name="zk_uid" id="zk_uid" placeholder="Leave empty to auto-generate">
+                            </div>
+                            <div class="field">
+                                <label>Role</label>
+                                <select name="privilege" id="member_privilege">
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <input type="text" name="password" id="member_password" value="123456">
+                        </div>
+                        <label style="display:flex; align-items:center; gap:10px; margin-top: 4px; color: var(--muted); font-weight: 600;">
+                            <input type="checkbox" name="enroll_fingerprint" value="on">
+                            Enroll fingerprint on device now
+                        </label>
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" class="success" id="member-submit-btn">Save Member</button>
+                            <button type="button" class="warning" id="reset-member-form">New Member</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel" style="margin-top: 22px;">
+                    <h2>Attendance Session</h2>
+                    <div class="session-box">
+                        {% if active_session %}
+                            <strong>Session Status:</strong> {{ active_session.status|title }}<br>
+                            <small>Started: {{ active_session.started_at|date:'d M Y, H:i' }}</small>
+                        {% else %}
+                            <strong>No active attendance session.</strong>
+                        {% endif %}
+                    </div>
+                    <div class="row">
+                        <form method="post" action="{% url 'start_session' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="primary">Start Attendance</button>
+                        </form>
+                        <form method="post" action="{% url 'end_session' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="warning">End Attendance</button>
+                        </form>
+                    </div>
+                    {% if active_session and active_session.summary %}
+                        <div class="summary-box">
+                            <strong>Summary:</strong> {{ active_session.summary }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <div class="panel">
+                    <h2>Registered Members</h2>
+                    <table class="member-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Employee ID</th>
+                                <th>UID</th>
+                                <th>Role</th>
+                                <th>Fingerprint</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                                <tr>
+                                    <td>{{ member.name }}</td>
+                                    <td>{{ member.employee_id|default:'N/A' }}</td>
+                                    <td>{{ member.zk_uid|default:'N/A' }}</td>
+                                    <td><span class="badge {% if member.privilege == 'admin' %}admin{% else %}user{% endif %}">{{ member.privilege|title }}</span></td>
+                                    <td>
+                                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                            <span class="badge {{ member.fingerprint_status|lower }}">{{ member.fingerprint_status|title }}</span>
+                                            {% if member.fingerprint_status == 'pending' %}
+                                                <form method="post" action="{% url 'enroll_member_fingerprint' %}" style="display:inline; margin:0;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="member_id" value="{{ member.id }}">
+                                                    <button type="submit" style="padding: 6px 10px; font-size: 0.72rem; border-radius: 8px; background: #f59e0b; color: white;">Enroll</button>
+                                                </form>
+                                            {% endif %}
+                                            <button type="button" class="edit-member-btn" data-member-id="{{ member.id }}" data-employee-id="{{ member.employee_id|default:'' }}" data-name="{{ member.name }}" data-zk-uid="{{ member.zk_uid|default:'' }}" data-password="{{ member.password }}" data-privilege="{{ member.privilege }}" style="padding: 6px 10px; font-size: 0.72rem; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer;">Edit</button>
+                                            <form method="post" action="{% url 'delete_member' %}" style="display:inline; margin:0;" onsubmit="return confirm('Delete {{ member.name|escapejs }} from the system?');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                                <button type="submit" style="padding: 6px 10px; font-size: 0.72rem; border-radius: 8px; background: #dc2626; color: white; border: none; cursor: pointer;">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="empty">No registered members yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel" style="margin-top: 22px;">
+                    <h2>Recent Attendance</h2>
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.member.name }}</td>
+                                    <td>{{ log.timestamp|date:'d M Y, H:i' }}</td>
+                                    <td>{{ log.status }}</td>
+                                    <td>{{ log.source }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="empty">No attendance logs yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function resetMemberForm() {
+            document.getElementById('member_id').value = '';
+            document.getElementById('employee_id').value = '';
+            document.getElementById('member_name').value = '';
+            document.getElementById('zk_uid').value = '';
+            document.getElementById('member_password').value = '123456';
+            document.getElementById('member_privilege').value = 'user';
+            document.getElementById('member-submit-btn').textContent = 'Save Member';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.edit-member-btn').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    document.getElementById('member_id').value = button.dataset.memberId;
+                    document.getElementById('employee_id').value = button.dataset.employeeId || '';
+                    document.getElementById('member_name').value = button.dataset.name || '';
+                    document.getElementById('zk_uid').value = button.dataset.zkUid || '';
+                    document.getElementById('member_password').value = button.dataset.password || '123456';
+                    document.getElementById('member_privilege').value = button.dataset.privilege || 'user';
+                    document.getElementById('member-submit-btn').textContent = 'Update Member';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            });
+
+            const resetBtn = document.getElementById('reset-member-form');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetMemberForm);
+            }
+
+            {% if enrollment_pending %}
+                setTimeout(function () {
+                    window.location.reload();
+                }, 15000);
+            {% elif enrollment_complete %}
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1500);
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

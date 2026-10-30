@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f9; }
+        .container { display: flex; gap: 20px; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex: 1; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; background: #f9f9f9; margin-bottom: 5px; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div style="background: #333; color: white; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 20px;">ZKTeco Management</h2>
+        <div>
+            <span style="margin-right: 15px;">Welcome, <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'logout' %}" style="background: #dc3545; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold;">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>👥 Registered Members</h2>
+            <ul>
+                {% for member in members %}
+                    <li><strong>{{ member.name }}</strong> <br> <small>Device UID: {{ member.zk_uid }}</small></li>
+                {% empty %}
+                    <li>No members registered yet. Add them via the Admin panel.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>📋 Recent Attendance</h2>
+            <table>
+                <tr><th>Name</th><th>Time</th><th>Status</th></tr>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.member.name }}</td>
+                    <td>{{ log.timestamp }}</td>
+                    <td style="color: green; font-weight: bold;">{{ log.status }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">No logs yet. Waiting for device sync...</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</body>
+</html>

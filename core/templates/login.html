@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login | Attendance System</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #2563eb;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --light: #f8fafc;
+            --muted: #64748b;
+            --card: #ffffff;
+            --shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 35%, #ecfeff 100%);
+            color: var(--primary);
+        }
+
+        .login-shell {
+            width: min(92vw, 420px);
+        }
+
+        .login-card {
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 32px 28px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .brand-mark {
+            width: 72px;
+            height: 72px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 12px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--secondary), #60a5fa);
+            color: white;
+            font-size: 32px;
+            box-shadow: 0 16px 30px rgba(37, 99, 235, 0.3);
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.85rem;
+            letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group { margin-bottom: 18px; }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 14px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background: #f8fafc;
+        }
+
+        input:focus {
+            border-color: rgba(37, 99, 235, 0.75);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            background: white;
+        }
+
+        .error {
+            margin: 0 0 18px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #b91c1c;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--secondary), #3b82f6);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 16px 28px rgba(37, 99, 235, 0.24);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-shell">
+        <div class="login-card">
+            <div class="brand">
+                <div class="brand-mark">🕒</div>
+                <h2>Admin Portal</h2>
+                <div class="subtitle">Attendance Monitoring System</div>
+            </div>
+
+            {% if form.errors %}
+                <div class="error">Invalid username or password. Please try again.</div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login to Dashboard</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
